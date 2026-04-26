@@ -16,9 +16,18 @@ from datetime import datetime
 
 @st.cache_resource
 def init_firebase():
-    """Initialize Firebase Admin SDK once for the whole session."""
     if not firebase_admin._apps:
-        cred = credentials.Certificate("serviceAccountKey.json")
+        try:
+            # Try Streamlit Cloud secrets first
+            if "firebase_service_account" in st.secrets:
+                sa = dict(st.secrets["firebase_service_account"])
+                sa["private_key"] = sa["private_key"].replace("\\n", "\n")
+                cred = credentials.Certificate(sa)
+            else:
+                # Local fallback
+                cred = credentials.Certificate("serviceAccountKey.json")
+        except Exception as e:
+            raise Exception(f"Firebase init failed: {e}")
         firebase_admin.initialize_app(cred)
     return firestore.client()
 
